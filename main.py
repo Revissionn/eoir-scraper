@@ -1,19 +1,25 @@
-from sanic import Sanic, response
-from sanic_cors import CORS
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
-app = Sanic("eoir-scraper")
-CORS(app)
+app = FastAPI()
 
-@app.route("/status", methods=["POST"])
-async def consulta(request):
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class AlienRequest(BaseModel):
+    alien_number: str
+
+@app.post("/status")
+async def consultar_status(request: AlienRequest):
     try:
-        data = await request.json()
-        alien = data.get("alien_number")
-
-        if not alien:
-            return response.json({"error": "El campo 'alien_number' es obligatorio"}, status=400)
-
-        # Aquí va tu scraping real. Por ahora, simulamos respuesta:
+        alien = request.alien_number
         resultado = {
             "name": "John Doe",
             "case_status": "Pending",
@@ -21,11 +27,7 @@ async def consulta(request):
             "judge": "Maria Reyes",
             "alien": alien
         }
-
-        return response.json(resultado)
+        return JSONResponse(content=resultado)
 
     except Exception as e:
-        return response.json({"error": str(e)}, status=500)
-
-if _name_ == "_main_":
-    app.run(host="0.0.0.0", port=10000)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
